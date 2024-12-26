@@ -169,10 +169,61 @@ class ExcelProcessorApp:
         self.current_file_index += 1
         self.process_next_file()
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def upload_reference_file(self):
         reference_file = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx *.xls")])
         if reference_file:
-            self.reference_df = pd.read_excel(reference_file, dtype=str)
+            # Cargar el archivo con openpyxl
+            wb = load_workbook(reference_file)
+            sheet = wb.active  # Puedes permitir al usuario seleccionar la hoja si es necesario
+
+            # Descombinar celdas en la hoja activa
+            merged_ranges = list(sheet.merged_cells.ranges)  # Copiamos la lista porque se modificará
+            for merged_range in merged_ranges:
+                # Obtener el rango combinado
+                min_row, min_col, max_row, max_col = merged_range.bounds
+                merged_value = sheet.cell(row=min_row, column=min_col).value  # Obtener el valor de la celda combinada
+
+
+                # Descombinar las celdas
+                sheet.unmerge_cells(merged_range.coord)
+
+                # Rellenar las celdas con el valor combinado
+                for row in range(min_row, max_row + 1):
+                    for col in range(min_col, max_col + 1):
+                        cell = sheet.cell(row=row, column=col)  # Acceder a la celda real
+                        cell.value = merged_value  # Asignar el valor
+
+            # Guardar los cambios en un archivo temporal para leerlo con pandas
+            temp_file = "temp_reference_file.xlsx"
+            wb.save(temp_file)
+
+            # Leer el archivo procesado con pandas
+            self.reference_df = pd.read_excel(temp_file, dtype=str)
+
+
+
+
+
+
+
+
+
+
+
             self.reference_window = tk.Toplevel(self.root)
             self.reference_window.title("Columnas de referencia")
             tk.Label(self.reference_window, text="Selecciona la columna de EAN y la columna a agregar:", bg="#e0e0e0").pack(pady=10)
